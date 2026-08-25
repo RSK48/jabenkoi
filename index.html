@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dhaka Bus Finder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#0E211D;
+    --teal:#0B4F4A;
+    --teal-dark:#083733;
+    --amber:#E8A33D;
+    --amber-dark:#C6832324;
+    --paper:#F3F5F2;
+    --line:#D8DFDB;
+    --muted:#5C6D68;
+    --red:#C1442D;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .stop-dot{transition:transform .25s ease;}
+    .route-fill{transition:stroke-dashoffset .6s ease;}
+    .result-card{animation:rise .35s ease both;}
+  }
+  @keyframes rise{
+    from{opacity:0; transform:translateY(8px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  header{
+    background:var(--teal);
+    color:#fff;
+    padding:28px 20px 24px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:6px;
+    background:repeating-linear-gradient(90deg, var(--amber) 0 18px, transparent 18px 30px);
+    opacity:.9;
+  }
+  .brand{
+    max-width:640px;
+    margin:0 auto;
+  }
+  .brand-eyebrow{
+    font-family:'Space Grotesk', 'Inter', sans-serif;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#BFE3DE;
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    font-size:30px;
+    font-weight:700;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .brand-sub{
+    margin:0;
+    font-size:14.5px;
+    color:#CFE7E3;
+  }
+
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:22px 20px 60px;
+  }
+
+  .search-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 1px 2px rgba(14,33,29,.04);
+  }
+  .field-row{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+  }
+  .field-group{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:0;
+  }
+  label{
+    font-size:12px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+  }
+  input[type="text"]{
+    font-family:inherit;
+    font-size:16px;
+    padding:11px 12px;
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    outline:none;
+    width:100%;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  input[type="text"]:focus{
+    border-color:var(--teal);
+    background:#fff;
+  }
+  .swap-btn{
+    flex:0 0 auto;
+    width:40px;
+    height:40px;
+    border-radius:9px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    color:var(--teal);
+    font-size:17px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:1px;
+  }
+  .swap-btn:hover{background:var(--paper);}
+  .swap-btn:focus-visible, input:focus-visible, button:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+
+  .find-btn{
+    margin-top:14px;
+    width:100%;
+    padding:13px;
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    font-family:'Space Grotesk','Inter',sans-serif;
+    font-size:15.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+  }
+  .find-btn:hover{background:var(--teal-dark);}
+  .find-btn:disabled{opacity:.55; cursor:not-allowed;}
+
+  .status-line{
+    margin:14px 2px 0;
+    font-size:13.5px;
+    color:var(--muted);
+  }
+  .status-line.error{color:var(--red);}
+
+  .results{
+    margin-top:22px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .results-heading{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--muted);
+    margin:0 2px 2px;
+  }
+
+  .result-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-left:4px solid var(--teal);
+    border-radius:10px;
+    padding:14px 16px 16px;
+  }
+  .result-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+  }
+  .bus-name{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    font-weight:700;
+    font-size:16.5px;
+  }
+  .fare{
+    font-family:'IBM Plex Mono','Menlo',monospace;
+    font-size:16px;
+    font-weight:600;
+    color:var(--teal-dark);
+    white-space:nowrap;
+  }
+  .fare.blank{
+    color:var(--muted);
+    font-weight:400;
+    font-size:13.5px;
+    font-family:'Inter',sans-serif;
+  }
+  .fare-unit{
+    font-size:11px;
+    font-weight:500;
+    color:var(--muted);
+    margin-left:2px;
+  }
+
+  .route-line-wrap{
+    margin-top:12px;
+    overflow-x:auto;
+  }
+  svg.route-svg{display:block;}
+  .stop-label{
+    font-size:9.5px;
+    fill:var(--muted);
+    font-family:'Inter',sans-serif;
+  }
+  .stop-label.highlight{
+    fill:var(--ink);
+    font-weight:600;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 16px;
+    color:var(--muted);
+  }
+  .empty-state .glyph{
+    font-size:30px;
+    display:block;
+    margin-bottom:10px;
+  }
+  .suggestions{
+    margin-top:10px;
+    font-size:13.5px;
+  }
+  .suggestions b{color:var(--ink);}
+
+  footer{
+    text-align:center;
+    padding:18px 20px 30px;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  datalist{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <p class="brand-eyebrow">ঢাকা বাস ফাইন্ডার</p>
+    <h1>Dhaka Bus Finder</h1>
+    <p class="brand-sub">Type where you're starting and where you're going — see every bus that runs that route.</p>
+  </div>
+</header>
+
+<main>
+  <div class="search-card">
+    <div class="field-row">
+      <div class="field-group">
+        <label for="from-input">From</label>
+        <input type="text" id="from-input" list="stops-list" placeholder="e.g. Gabtoli" autocomplete="off">
+      </div>
+      <button class="swap-btn" id="swap-btn" title="Swap From and To" aria-label="Swap From and To">⇅</button>
+      <div class="field-group">
+        <label for="to-input">To</label>
+        <input type="text" id="to-input" list="stops-list" placeholder="e.g. Motijheel" autocomplete="off">
+      </div>
+    </div>
+    <datalist id="stops-list"></datalist>
+
+    <button class="find-btn" id="find-btn">Find buses</button>
+    <p class="status-line" id="status-line">Loading bus data…</p>
+  </div>
+
+  <div class="results" id="results"></div>
+</main>
+
+<footer id="footer-note">
+  Data source: bus_data.xlsx — updated monthly.
+</footer>
+
+<script>
+const STOP_SEP = /\s*-\s*/;
+let buses = [];       // [{name, stops:[...], fare: number|null}]
+let stopIndex = new Map(); // lowercase stop -> canonical display name
+
+function normalize(s){ return (s||"").trim().toLowerCase(); }
+
+async function loadData(){
+  const statusEl = document.getElementById('status-line');
+  const findBtn = document.getElementById('find-btn');
+  try{
+    const res = await fetch('bus_data.xlsx', {cache:'no-store'});
+    if(!res.ok) throw new Error('fetch-failed');
+    const buf = await res.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const sheet = wb.Sheets['Bus Data'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+
+    buses = rows.map(r => {
+      const name = String(r['Bus Name'] ?? '').trim();
+      const destRaw = String(r['Destinations'] ?? '').trim();
+      const stops = destRaw.split(STOP_SEP).map(s => s.trim()).filter(Boolean);
+      const fareRaw = r['Fare'];
+      const fare = (fareRaw === '' || fareRaw === undefined || fareRaw === null)
+        ? null
+        : Number(fareRaw);
+      stops.forEach(s => { if(!stopIndex.has(normalize(s))) stopIndex.set(normalize(s), s); });
+      return { name, stops, fare: (isNaN(fare) ? null : fare) };
+    }).filter(b => b.name && b.stops.length > 1);
+
+    const datalist = document.getElementById('stops-list');
+    [...stopIndex.values()].sort((a,b)=>a.localeCompare(b)).forEach(s=>{
+      const opt = document.createElement('option');
+      opt.value = s;
+      datalist.appendChild(opt);
+    });
+
+    statusEl.textContent = `Loaded ${buses.length} bus route${buses.length===1?'':'s'} · ${stopIndex.size} stops.`;
+    findBtn.disabled = false;
+  }catch(err){
+    statusEl.textContent = 'Could not load bus_data.xlsx. If you opened this file directly (file://), run it through a local server instead — see the note below the results.';
+    statusEl.classList.add('error');
+    findBtn.disabled = true;
+    showServerHint();
+  }
+}
+
+function showServerHint(){
+  const results = document.getElementById('results');
+  results.innerHTML = `
+    <div class="empty-state">
+      <span class="glyph">⚠</span>
+      <div><b>Can't read the spreadsheet from here.</b></div>
+      <div style="margin-top:6px;">
+        Browsers block a page from reading local files directly.
+        Put <code>index.html</code> and <code>bus_data.xlsx</code> in the same folder,
+        then serve that folder — for example, open a terminal there and run:
+        <div style="margin-top:8px; font-family:'IBM Plex Mono',monospace; background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px; display:inline-block;">
+          python3 -m http.server 8000
+        </div>
+        <div style="margin-top:6px;">then open <b>http://localhost:8000</b> in your browser.</div>
+      </div>
+    </div>`;
+}
+
+function closestSuggestions(term){
+  const t = normalize(term);
+  if(!t) return [];
+  return [...stopIndex.values()]
+    .filter(s => normalize(s).includes(t) || t.includes(normalize(s)))
+    .slice(0,4);
+}
+
+function renderRouteSvg(stops, fromIdx, toIdx){
+  const lo = Math.min(fromIdx, toIdx);
+  const hi = Math.max(fromIdx, toIdx);
+  const n = stops.length;
+  const stepX = 42;
+  const padX = 16;
+  const width = padX*2 + stepX*(n-1);
+  const height = 44;
+  const y = 14;
+
+  const COL_LINE = '#D8DFDB';
+  const COL_AMBER = '#E8A33D';
+  const COL_TEAL = '#0B4F4A';
+  const COL_MUTED = '#5C6D68';
+  const COL_INK = '#0E211D';
+
+  let svg = `<svg class="route-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`;
+  // base line
+  svg += `<line x1="${padX}" y1="${y}" x2="${width-padX}" y2="${y}" stroke="${COL_LINE}" stroke-width="3" stroke-linecap="round"/>`;
+  // highlighted segment
+  const x1 = padX + stepX*lo;
+  const x2 = padX + stepX*hi;
+  svg += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${COL_AMBER}" stroke-width="3" stroke-linecap="round"/>`;
+
+  stops.forEach((s, i) => {
+    const cx = padX + stepX*i;
+    const isEndpoint = (i === fromIdx || i === toIdx);
+    const r = isEndpoint ? 5.5 : 3.5;
+    const fill = isEndpoint ? COL_TEAL : '#fff';
+    const stroke = isEndpoint ? COL_TEAL : COL_LINE;
+    const labelFill = isEndpoint ? COL_INK : COL_MUTED;
+    const labelWeight = isEndpoint ? '600' : '400';
+    svg += `<circle class="stop-dot" cx="${cx}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    svg += `<text class="stop-label" x="${cx}" y="${y+18}" text-anchor="middle" fill="${labelFill}" font-weight="${labelWeight}">${escapeHtml(s)}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function search(){
+  const fromRaw = document.getElementById('from-input').value.trim();
+  const toRaw = document.getElementById('to-input').value.trim();
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+
+  if(!fromRaw || !toRaw){
+    results.innerHTML = `<div class="empty-state"><span class="glyph">🚌</span>Enter both a "From" and a "To" stop to search.</div>`;
+    return;
+  }
+  if(normalize(fromRaw) === normalize(toRaw)){
+    results.innerHTML = `<div class="empty-state"><span class="glyph">🚌</span>From and To are the same stop.</div>`;
+    return;
+  }
+
+  const fromKnown = stopIndex.has(normalize(fromRaw));
+  const toKnown = stopIndex.has(normalize(toRaw));
+
+  if(!fromKnown || !toKnown){
+    const bad = !fromKnown ? fromRaw : toRaw;
+    const suggestions = closestSuggestions(bad);
+    results.innerHTML = `
+      <div class="empty-state">
+        <span class="glyph">🔎</span>
+        <div>"<b>${escapeHtml(bad)}</b>" isn't a recognized stop.</div>
+        ${suggestions.length ? `<div class="suggestions">Did you mean: ${suggestions.map(s=>`<b>${escapeHtml(s)}</b>`).join(', ')}?</div>` : ''}
+      </div>`;
+    return;
+  }
+
+  const matches = buses
+    .map(b => {
+      const idxFrom = b.stops.findIndex(s => normalize(s) === normalize(fromRaw));
+      const idxTo = b.stops.findIndex(s => normalize(s) === normalize(toRaw));
+      if(idxFrom === -1 || idxTo === -1) return null;
+      return { ...b, idxFrom, idxTo };
+    })
+    .filter(Boolean)
+    .sort((a,b) => (a.fare ?? Infinity) - (b.fare ?? Infinity));
+
+  if(matches.length === 0){
+    results.innerHTML = `
+      <div class="empty-state">
+        <span class="glyph">🚫</span>
+        <div>No direct bus found between <b>${escapeHtml(fromRaw)}</b> and <b>${escapeHtml(toRaw)}</b>.</div>
+        <div class="suggestions">You may need to change buses along the way.</div>
+      </div>`;
+    return;
+  }
+
+  const heading = document.createElement('p');
+  heading.className = 'results-heading';
+  heading.textContent = `${matches.length} bus${matches.length===1?'':'es'} found`;
+  results.appendChild(heading);
+
+  matches.forEach(b => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    const fareHtml = (b.fare === null)
+      ? `<span class="fare blank">Fare not listed</span>`
+      : `<span class="fare">৳${b.fare}</span>`;
+    card.innerHTML = `
+      <div class="result-top">
+        <span class="bus-name">${escapeHtml(b.name)}</span>
+        ${fareHtml}
+      </div>
+      <div class="route-line-wrap">${renderRouteSvg(b.stops, b.idxFrom, b.idxTo)}</div>
+    `;
+    results.appendChild(card);
+  });
+}
+
+document.getElementById('find-btn').addEventListener('click', search);
+[document.getElementById('from-input'), document.getElementById('to-input')].forEach(inp=>{
+  inp.addEventListener('keydown', e => { if(e.key === 'Enter') search(); });
+});
+document.getElementById('swap-btn').addEventListener('click', () => {
+  const a = document.getElementById('from-input');
+  const b = document.getElementById('to-input');
+  const tmp = a.value; a.value = b.value; b.value = tmp;
+});
+
+loadData();
+</script>
+
+</body>
+</html>
