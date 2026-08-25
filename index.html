@@ -1,33 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dhaka Bus Finder</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>JabenKoi?</title>
 <style>
   :root{
+    --radius:14px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0B1614;
+    --surface:#10201D;
+    --surface-2:#16302B;
+    --border:#24413B;
+    --ink:#E9F2EF;
+    --muted:#8FA7A1;
+    --teal:#2AA394;
+    --teal-dark:#1E7A6E;
+    --amber:#F0B04C;
+    --red:#FF6B52;
+    --shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+  html[data-theme="light"]{
+    --bg:#F3F5F2;
+    --surface:#FFFFFF;
+    --surface-2:#F3F5F2;
+    --border:#D8DFDB;
     --ink:#0E211D;
+    --muted:#5C6D68;
     --teal:#0B4F4A;
     --teal-dark:#083733;
     --amber:#E8A33D;
-    --amber-dark:#C6832324;
-    --paper:#F3F5F2;
-    --line:#D8DFDB;
-    --muted:#5C6D68;
     --red:#C1442D;
+    --shadow:0 1px 2px rgba(14,33,29,.04);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:var(--paper);
+    background:var(--bg);
     color:var(--ink);
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     min-height:100vh;
   }
   @media (prefers-reduced-motion: no-preference){
-    .stop-dot{transition:transform .25s ease;}
-    .route-fill{transition:stroke-dashoffset .6s ease;}
     .result-card{animation:rise .35s ease both;}
   }
   @keyframes rise{
@@ -36,9 +51,9 @@
   }
 
   header{
-    background:var(--teal);
+    background:var(--teal-dark);
     color:#fff;
-    padding:28px 20px 24px;
+    padding:22px 20px 24px;
     position:relative;
     overflow:hidden;
   }
@@ -50,9 +65,13 @@
     background:repeating-linear-gradient(90deg, var(--amber) 0 18px, transparent 18px 30px);
     opacity:.9;
   }
-  .brand{
+  .brand-bar{
     max-width:640px;
     margin:0 auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
   }
   .brand-eyebrow{
     font-family:'Space Grotesk', 'Inter', sans-serif;
@@ -64,7 +83,7 @@
   }
   h1{
     font-family:'Space Grotesk','Inter',sans-serif;
-    font-size:30px;
+    font-size:32px;
     font-weight:700;
     margin:0 0 4px;
     letter-spacing:-0.01em;
@@ -75,18 +94,44 @@
     color:#CFE7E3;
   }
 
+  .theme-toggle{
+    flex:0 0 auto;
+    width:52px;
+    height:30px;
+    border-radius:999px;
+    border:1.5px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.12);
+    position:relative;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .theme-toggle .knob{
+    position:absolute;
+    top:2px; left:2px;
+    width:23px; height:23px;
+    border-radius:50%;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    transition:transform .2s ease;
+  }
+  html[data-theme="dark"] .theme-toggle .knob{ transform:translateX(22px); }
+
   main{
     max-width:640px;
     margin:0 auto;
-    padding:22px 20px 60px;
+    padding:22px 20px 40px;
   }
 
   .search-card{
-    background:#fff;
-    border:1px solid var(--line);
-    border-radius:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
     padding:18px;
-    box-shadow:0 1px 2px rgba(14,33,29,.04);
+    box-shadow:var(--shadow);
+    position:relative;
   }
   .field-row{
     display:flex;
@@ -99,6 +144,7 @@
     flex-direction:column;
     gap:6px;
     min-width:0;
+    position:relative;
   }
   label{
     font-size:12px;
@@ -111,24 +157,26 @@
     font-family:inherit;
     font-size:16px;
     padding:11px 12px;
-    border:1.5px solid var(--line);
+    border:1.5px solid var(--border);
     border-radius:9px;
     outline:none;
     width:100%;
-    background:var(--paper);
+    background:var(--surface-2);
     color:var(--ink);
+    -webkit-appearance:none;
+    appearance:none;
   }
   input[type="text"]:focus{
     border-color:var(--teal);
-    background:#fff;
+    background:var(--surface);
   }
   .swap-btn{
     flex:0 0 auto;
     width:40px;
     height:40px;
     border-radius:9px;
-    border:1.5px solid var(--line);
-    background:#fff;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
     color:var(--teal);
     font-size:17px;
     cursor:pointer;
@@ -137,10 +185,39 @@
     justify-content:center;
     margin-bottom:1px;
   }
-  .swap-btn:hover{background:var(--paper);}
+  .swap-btn:hover{background:var(--surface);}
   .swap-btn:focus-visible, input:focus-visible, button:focus-visible{
     outline:2px solid var(--teal);
     outline-offset:2px;
+  }
+
+  /* Custom autocomplete (works reliably on iOS/Android, unlike native <datalist>) */
+  .suggest-box{
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0; right:0;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:9px;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);
+    max-height:220px;
+    overflow-y:auto;
+    z-index:20;
+    display:none;
+  }
+  .suggest-box.open{display:block;}
+  .suggest-item{
+    padding:10px 12px;
+    font-size:15px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .suggest-item:active,
+  .suggest-item.active-hover{
+    background:var(--surface-2);
+  }
+  .suggest-item + .suggest-item{
+    border-top:1px solid var(--border);
   }
 
   .find-btn{
@@ -183,8 +260,8 @@
   }
 
   .result-card{
-    background:#fff;
-    border:1px solid var(--line);
+    background:var(--surface);
+    border:1px solid var(--border);
     border-left:4px solid var(--teal);
     border-radius:10px;
     padding:14px 16px 16px;
@@ -204,7 +281,7 @@
     font-family:'IBM Plex Mono','Menlo',monospace;
     font-size:16px;
     font-weight:600;
-    color:var(--teal-dark);
+    color:var(--teal);
     white-space:nowrap;
   }
   .fare.blank{
@@ -213,27 +290,12 @@
     font-size:13.5px;
     font-family:'Inter',sans-serif;
   }
-  .fare-unit{
-    font-size:11px;
-    font-weight:500;
-    color:var(--muted);
-    margin-left:2px;
-  }
 
   .route-line-wrap{
     margin-top:12px;
     overflow-x:auto;
   }
   svg.route-svg{display:block;}
-  .stop-label{
-    font-size:9.5px;
-    fill:var(--muted);
-    font-family:'Inter',sans-serif;
-  }
-  .stop-label.highlight{
-    fill:var(--ink);
-    font-weight:600;
-  }
 
   .empty-state{
     text-align:center;
@@ -245,29 +307,103 @@
     display:block;
     margin-bottom:10px;
   }
-  .suggestions{
+  .suggestions-note{
     margin-top:10px;
     font-size:13.5px;
   }
-  .suggestions b{color:var(--ink);}
+  .suggestions-note b{color:var(--ink);}
 
   footer{
     text-align:center;
-    padding:18px 20px 30px;
-    font-size:12px;
+    padding:18px 20px 34px;
+    font-size:13px;
     color:var(--muted);
   }
+  .footer-links{
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .footer-links a, .footer-links button{
+    background:none;
+    border:none;
+    font:inherit;
+    color:var(--teal);
+    cursor:pointer;
+    padding:0;
+    text-decoration:none;
+    font-weight:600;
+  }
+  .footer-links a:hover, .footer-links button:hover{text-decoration:underline;}
 
-  datalist{display:none;}
+  /* Modal */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:100;
+  }
+  .modal-overlay.open{display:flex;}
+  @media (min-width:600px){
+    .modal-overlay{align-items:center;}
+  }
+  .modal-box{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px 16px 0 0;
+    width:100%;
+    max-width:460px;
+    padding:24px 22px 28px;
+    color:var(--ink);
+    max-height:80vh;
+    overflow-y:auto;
+  }
+  @media (min-width:600px){
+    .modal-box{border-radius:16px;}
+  }
+  .modal-box h2{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    margin:0 0 12px;
+    font-size:20px;
+  }
+  .modal-box p{
+    font-size:15px;
+    line-height:1.55;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  .modal-box a{color:var(--teal); font-weight:600;}
+  .modal-close{
+    display:block;
+    margin-left:auto;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--ink);
+    border-radius:8px;
+    padding:8px 14px;
+    font-size:14px;
+    cursor:pointer;
+    margin-top:6px;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <p class="brand-eyebrow">ঢাকা বাস ফাইন্ডার</p>
-    <h1>Dhaka Bus Finder</h1>
-    <p class="brand-sub">Type where you're starting and where you're going — see every bus that runs that route.</p>
+  <div class="brand-bar">
+    <div>
+      <p class="brand-eyebrow">ঢাকা বাস ফাইন্ডার</p>
+      <h1>JabenKoi?</h1>
+      <p class="brand-sub">Type where you're starting and where you're going — see every bus that runs that route.</p>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+      <span class="knob" id="theme-knob">🌙</span>
+    </button>
   </div>
 </header>
 
@@ -276,15 +412,16 @@
     <div class="field-row">
       <div class="field-group">
         <label for="from-input">From</label>
-        <input type="text" id="from-input" list="stops-list" placeholder="e.g. Gabtoli" autocomplete="off">
+        <input type="text" id="from-input" placeholder="e.g. Gabtoli" autocomplete="off">
+        <div class="suggest-box" id="from-suggest"></div>
       </div>
       <button class="swap-btn" id="swap-btn" title="Swap From and To" aria-label="Swap From and To">⇅</button>
       <div class="field-group">
         <label for="to-input">To</label>
-        <input type="text" id="to-input" list="stops-list" placeholder="e.g. Motijheel" autocomplete="off">
+        <input type="text" id="to-input" placeholder="e.g. Motijheel" autocomplete="off">
+        <div class="suggest-box" id="to-suggest"></div>
       </div>
     </div>
-    <datalist id="stops-list"></datalist>
 
     <button class="find-btn" id="find-btn">Find buses</button>
     <p class="status-line" id="status-line">Loading bus data…</p>
@@ -293,14 +430,104 @@
   <div class="results" id="results"></div>
 </main>
 
-<footer id="footer-note">
-  Data source: bus_data.xlsx — updated monthly.
+<footer>
+  <div class="footer-links">
+    <button id="link-about">About</button>
+    <button id="link-support">Support</button>
+    <button id="link-contribute">Contribute</button>
+  </div>
+  Bus data is updated by the maintainer via a live sheet.
 </footer>
 
+<!-- Modals -->
+<div class="modal-overlay" id="modal-about">
+  <div class="modal-box">
+    <h2>About</h2>
+    <p>I am Rafid Shadman Khan. I made this website for myself — I tend to forget bus names. Thought there might be people like me :)</p>
+    <p>Follow me here: <a href="https://www.youtube.com/@RSK48" target="_blank" rel="noopener">youtube.com/@RSK48</a></p>
+    <button class="modal-close" data-close>Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-support">
+  <div class="modal-box">
+    <h2>Support</h2>
+    <p>I wish to host this website officially, without depending on GitHub.</p>
+    <p><a href="https://www.supportkori.com/rafidshadmankhan" target="_blank" rel="noopener">supportkori.com/rafidshadmankhan</a></p>
+    <button class="modal-close" data-close>Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-contribute">
+  <div class="modal-box">
+    <h2>Contribute</h2>
+    <p>Help me enrich and improve the bus list and the website.</p>
+    <p>Contact me here: <a href="mailto:jabenkoi.bus@gmail.com">jabenkoi.bus@gmail.com</a></p>
+    <button class="modal-close" data-close>Close</button>
+  </div>
+</div>
+
 <script>
+/* ============ CONFIG ============ */
+// Live data source: Google Sheet published as CSV.
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTdJ66CgV0ebNRv0vbdPFAIJgJPECNZPH1SjlwFxcdxmVQNXhDy_Y75eT6QMs65w/pub?gid=477769718&single=true&output=csv";
+
+/* ============ THEME ============ */
+(function initTheme(){
+  const saved = localStorage.getItem('jabenkoi-theme');
+  const theme = saved || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  updateKnob(theme);
+})();
+function updateKnob(theme){
+  document.getElementById('theme-knob').textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('jabenkoi-theme', next);
+  updateKnob(next);
+});
+
+/* ============ MODALS ============ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeAllModals(){ document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open')); }
+document.getElementById('link-about').addEventListener('click', () => openModal('modal-about'));
+document.getElementById('link-support').addEventListener('click', () => openModal('modal-support'));
+document.getElementById('link-contribute').addEventListener('click', () => openModal('modal-contribute'));
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if(e.target === overlay) closeAllModals(); });
+});
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', closeAllModals));
+
+/* ============ CSV PARSER ============ */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length===1 && r[0]===''));
+}
+
+/* ============ DATA ============ */
 const STOP_SEP = /\s*-\s*/;
-let buses = [];       // [{name, stops:[...], fare: number|null}]
-let stopIndex = new Map(); // lowercase stop -> canonical display name
+let buses = [];
+let stopIndex = new Map(); // lowercase -> canonical display name
 
 function normalize(s){ return (s||"").trim().toLowerCase(); }
 
@@ -308,68 +535,72 @@ async function loadData(){
   const statusEl = document.getElementById('status-line');
   const findBtn = document.getElementById('find-btn');
   try{
-    const res = await fetch('bus_data.xlsx', {cache:'no-store'});
+    const res = await fetch(SHEET_CSV_URL, {cache:'no-store'});
     if(!res.ok) throw new Error('fetch-failed');
-    const buf = await res.arrayBuffer();
-    const wb = XLSX.read(buf, {type:'array'});
-    const sheet = wb.Sheets['Bus Data'] || wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+    const text = await res.text();
+    const table = parseCSV(text);
+    const headers = table[0].map(h => h.trim());
+    const dataRows = table.slice(1).map(r => Object.fromEntries(headers.map((h,i)=>[h, (r[i] ?? '').trim()])));
 
-    buses = rows.map(r => {
+    buses = dataRows.map(r => {
       const name = String(r['Bus Name'] ?? '').trim();
       const destRaw = String(r['Destinations'] ?? '').trim();
       const stops = destRaw.split(STOP_SEP).map(s => s.trim()).filter(Boolean);
       const fareRaw = r['Fare'];
-      const fare = (fareRaw === '' || fareRaw === undefined || fareRaw === null)
-        ? null
-        : Number(fareRaw);
+      const fare = (fareRaw === '' || fareRaw === undefined || fareRaw === null) ? null : Number(fareRaw);
       stops.forEach(s => { if(!stopIndex.has(normalize(s))) stopIndex.set(normalize(s), s); });
       return { name, stops, fare: (isNaN(fare) ? null : fare) };
     }).filter(b => b.name && b.stops.length > 1);
 
-    const datalist = document.getElementById('stops-list');
-    [...stopIndex.values()].sort((a,b)=>a.localeCompare(b)).forEach(s=>{
-      const opt = document.createElement('option');
-      opt.value = s;
-      datalist.appendChild(opt);
-    });
-
     statusEl.textContent = `Loaded ${buses.length} bus route${buses.length===1?'':'s'} · ${stopIndex.size} stops.`;
     findBtn.disabled = false;
   }catch(err){
-    statusEl.textContent = 'Could not load bus_data.xlsx. If you opened this file directly (file://), run it through a local server instead — see the note below the results.';
+    statusEl.textContent = 'Could not load live bus data. Check your internet connection and try refreshing.';
     statusEl.classList.add('error');
     findBtn.disabled = true;
-    showServerHint();
   }
 }
 
-function showServerHint(){
-  const results = document.getElementById('results');
-  results.innerHTML = `
-    <div class="empty-state">
-      <span class="glyph">⚠</span>
-      <div><b>Can't read the spreadsheet from here.</b></div>
-      <div style="margin-top:6px;">
-        Browsers block a page from reading local files directly.
-        Put <code>index.html</code> and <code>bus_data.xlsx</code> in the same folder,
-        then serve that folder — for example, open a terminal there and run:
-        <div style="margin-top:8px; font-family:'IBM Plex Mono',monospace; background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px; display:inline-block;">
-          python3 -m http.server 8000
-        </div>
-        <div style="margin-top:6px;">then open <b>http://localhost:8000</b> in your browser.</div>
-      </div>
-    </div>`;
+/* ============ CUSTOM AUTOCOMPLETE (mobile-safe) ============ */
+function setupAutocomplete(inputId, boxId){
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(boxId);
+
+  function render(list){
+    box.innerHTML = '';
+    if(list.length === 0){ box.classList.remove('open'); return; }
+    list.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'suggest-item';
+      item.textContent = name;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = name;
+        box.classList.remove('open');
+      });
+      box.appendChild(item);
+    });
+    box.classList.add('open');
+  }
+
+  input.addEventListener('input', () => {
+    const term = normalize(input.value);
+    if(!term){ box.classList.remove('open'); return; }
+    const matches = [...stopIndex.values()]
+      .filter(s => normalize(s).includes(term))
+      .sort((a,b) => normalize(a).indexOf(term) - normalize(b).indexOf(term) || a.localeCompare(b))
+      .slice(0, 8);
+    render(matches);
+  });
+  input.addEventListener('focus', () => {
+    if(input.value.trim()) input.dispatchEvent(new Event('input'));
+  });
+  document.addEventListener('click', e => {
+    if(!box.contains(e.target) && e.target !== input) box.classList.remove('open');
+  });
 }
 
-function closestSuggestions(term){
-  const t = normalize(term);
-  if(!t) return [];
-  return [...stopIndex.values()]
-    .filter(s => normalize(s).includes(t) || t.includes(normalize(s)))
-    .slice(0,4);
-}
-
+/* ============ ROUTE SVG ============ */
 function renderRouteSvg(stops, fromIdx, toIdx){
   const lo = Math.min(fromIdx, toIdx);
   const hi = Math.max(fromIdx, toIdx);
@@ -380,16 +611,16 @@ function renderRouteSvg(stops, fromIdx, toIdx){
   const height = 44;
   const y = 14;
 
-  const COL_LINE = '#D8DFDB';
-  const COL_AMBER = '#E8A33D';
-  const COL_TEAL = '#0B4F4A';
-  const COL_MUTED = '#5C6D68';
-  const COL_INK = '#0E211D';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const COL_LINE = isDark ? '#2A4842' : '#D8DFDB';
+  const COL_AMBER = isDark ? '#F0B04C' : '#E8A33D';
+  const COL_TEAL = isDark ? '#2AA394' : '#0B4F4A';
+  const COL_MUTED = isDark ? '#8FA7A1' : '#5C6D68';
+  const COL_INK = isDark ? '#E9F2EF' : '#0E211D';
+  const COL_DOTFILL = isDark ? '#10201D' : '#fff';
 
   let svg = `<svg class="route-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`;
-  // base line
   svg += `<line x1="${padX}" y1="${y}" x2="${width-padX}" y2="${y}" stroke="${COL_LINE}" stroke-width="3" stroke-linecap="round"/>`;
-  // highlighted segment
   const x1 = padX + stepX*lo;
   const x2 = padX + stepX*hi;
   svg += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${COL_AMBER}" stroke-width="3" stroke-linecap="round"/>`;
@@ -398,12 +629,12 @@ function renderRouteSvg(stops, fromIdx, toIdx){
     const cx = padX + stepX*i;
     const isEndpoint = (i === fromIdx || i === toIdx);
     const r = isEndpoint ? 5.5 : 3.5;
-    const fill = isEndpoint ? COL_TEAL : '#fff';
+    const fill = isEndpoint ? COL_TEAL : COL_DOTFILL;
     const stroke = isEndpoint ? COL_TEAL : COL_LINE;
     const labelFill = isEndpoint ? COL_INK : COL_MUTED;
     const labelWeight = isEndpoint ? '600' : '400';
-    svg += `<circle class="stop-dot" cx="${cx}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
-    svg += `<text class="stop-label" x="${cx}" y="${y+18}" text-anchor="middle" fill="${labelFill}" font-weight="${labelWeight}">${escapeHtml(s)}</text>`;
+    svg += `<circle cx="${cx}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    svg += `<text x="${cx}" y="${y+18}" text-anchor="middle" fill="${labelFill}" font-weight="${labelWeight}" font-size="9.5" font-family="Inter,sans-serif">${escapeHtml(s)}</text>`;
   });
   svg += `</svg>`;
   return svg;
@@ -413,6 +644,15 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function closestSuggestions(term){
+  const t = normalize(term);
+  if(!t) return [];
+  return [...stopIndex.values()]
+    .filter(s => normalize(s).includes(t) || t.includes(normalize(s)))
+    .slice(0,4);
+}
+
+/* ============ SEARCH ============ */
 function search(){
   const fromRaw = document.getElementById('from-input').value.trim();
   const toRaw = document.getElementById('to-input').value.trim();
@@ -438,7 +678,7 @@ function search(){
       <div class="empty-state">
         <span class="glyph">🔎</span>
         <div>"<b>${escapeHtml(bad)}</b>" isn't a recognized stop.</div>
-        ${suggestions.length ? `<div class="suggestions">Did you mean: ${suggestions.map(s=>`<b>${escapeHtml(s)}</b>`).join(', ')}?</div>` : ''}
+        ${suggestions.length ? `<div class="suggestions-note">Did you mean: ${suggestions.map(s=>`<b>${escapeHtml(s)}</b>`).join(', ')}?</div>` : ''}
       </div>`;
     return;
   }
@@ -458,7 +698,7 @@ function search(){
       <div class="empty-state">
         <span class="glyph">🚫</span>
         <div>No direct bus found between <b>${escapeHtml(fromRaw)}</b> and <b>${escapeHtml(toRaw)}</b>.</div>
-        <div class="suggestions">You may need to change buses along the way.</div>
+        <div class="suggestions-note">You may need to change buses along the way.</div>
       </div>`;
     return;
   }
@@ -495,6 +735,8 @@ document.getElementById('swap-btn').addEventListener('click', () => {
   const tmp = a.value; a.value = b.value; b.value = tmp;
 });
 
+setupAutocomplete('from-input', 'from-suggest');
+setupAutocomplete('to-input', 'to-suggest');
 loadData();
 </script>
 
